@@ -154,7 +154,7 @@ Member::Member(const Member &anotherMember) {
 	this->pingCounter = anotherMember.pingCounter;
 	this->timeOutCounter = anotherMember.timeOutCounter;
 	this->memberList = anotherMember.memberList;
-	this->myPos = anotherMember.myPos;
+	this->myPos = anotherMember.myPos;	// ??? This is not correct. 
 	this->mp1q = anotherMember.mp1q;
 }
 

@@ -31,6 +31,7 @@
 enum MsgTypes{
     JOINREQ,
     JOINREP,
+	HEARTBEAT,
     DUMMYLASTMSGTYPE
 };
 
@@ -41,7 +42,18 @@ enum MsgTypes{
  */
 typedef struct MessageHdr {
 	enum MsgTypes msgType;
+	size_t entrySize;
 }MessageHdr;
+
+/**
+ * STRUCT NAME: MessageEntry
+ *
+ * DESCRIPTION: Entry of a message.
+ */
+typedef struct MessageEntry {
+	Address addr;
+	long heartbeat;
+} MessageEntry;
 
 /**
  * CLASS NAME: MP1Node
@@ -55,6 +67,7 @@ private:
 	Params *par;
 	Member *memberNode;
 	char NULLADDR[6];
+	int gossipSize;
 
 public:
 	MP1Node(Member *, Params *, EmulNet *, Log *, Address *);
@@ -70,10 +83,17 @@ public:
 	void nodeLoop();
 	void checkMessages();
 	bool recvCallBack(void *env, char *data, int size);
+
+	void fillAddress(Address &address, int id, short port);
+	void parseAddress(Address &address, int *id, short *port);
+	void parseMsgEntry(MessageEntry *data, int *id, short *port, long *heartbeat);
+	size_t constructMemberListMsg(MessageHdr *msg);
+	void msgEntryLoop(MessageEntry *data, size_t entrySize);
+
 	void nodeLoopOps();
 	int isNullAddress(Address *addr);
 	Address getJoinAddress();
-	void initMemberListTable(Member *memberNode);
+	void initMemberListTable();
 	void printAddress(Address *addr);
 	virtual ~MP1Node();
 };

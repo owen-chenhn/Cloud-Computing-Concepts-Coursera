@@ -37,7 +37,7 @@ public:
 	int nextid;
 	int currbuffsize;
 	int firsteltindex;
-	en_msg* buff[ENBUFFSIZE];
+	en_msg* buff[ENBUFFSIZE];	// in memory buffer to store all the in-flight messages
 	EM() {}
 	EM& operator = (EM &anotherEM) {
 		this->nextid = anotherEM.getNextId();
@@ -80,8 +80,8 @@ class EmulNet
 { 	
 private:
 	Params* par;
-	int sent_msgs[MAX_NODES + 1][MAX_TIME];
-	int recv_msgs[MAX_NODES + 1][MAX_TIME];
+	int sent_msgs[MAX_NODES + 1][MAX_TIME];	// Count the number of msgs sent by node i at time j
+	int recv_msgs[MAX_NODES + 1][MAX_TIME];	// Count the number of msgs received by node i at time j
 	int enInited;
 	EM emulnet;
 public:

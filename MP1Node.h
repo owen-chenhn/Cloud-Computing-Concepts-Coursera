@@ -19,7 +19,8 @@
  * Macros
  */
 #define TREMOVE 20
-#define TFAIL 5
+#define TFAIL 10
+#define GOSSIPSIZE 5
 
 /*
  * Note: You can change/add any functions in MP1Node.{h,cpp}
@@ -67,7 +68,6 @@ private:
 	Params *par;
 	Member *memberNode;
 	char NULLADDR[6];
-	int gossipSize;
 
 public:
 	MP1Node(Member *, Params *, EmulNet *, Log *, Address *);
@@ -85,8 +85,6 @@ public:
 	bool recvCallBack(void *env, char *data, int size);
 
 	void fillAddress(Address &address, int id, short port);
-	void parseAddress(Address &address, int *id, short *port);
-	void parseMsgEntry(MessageEntry *data, int *id, short *port, long *heartbeat);
 	size_t constructMemberListMsg(MessageHdr *msg);
 	void msgEntryLoop(MessageEntry *data, size_t entrySize);
 

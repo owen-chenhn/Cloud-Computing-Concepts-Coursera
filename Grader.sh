@@ -178,13 +178,13 @@ if [ $failcount -ge 9 ]; then
 else
 	echo "Checking Completeness..........0/15"
 fi
-#failednode=`grep failed dbg.log | sort -u | awk '{print $1}'`
-#accuracycount=`grep removed dbg.log | sort -u | grep -v $failednode | wc -l`
-#if [ $accuracycount -eq 0 ] && [ $failcount -gt 0 ]; then
-#	grade=`expr $grade + 10`
-#	echo "Checking Accuracy..............10/10"
-#else
-#	echo "Checking Accuracy..............0/10"
-#fi
-#echo "============================================"
+failednode=`grep failed dbg.log | sort -u | awk '{print $1}'`
+accuracycount=`grep removed dbg.log | sort -u | grep -v $failednode | wc -l`
+if [ $accuracycount -eq 0 ] && [ $failcount -gt 0 ]; then
+	grade=`expr $grade + 10`
+	echo "Checking Accuracy..............10/10"
+else
+	echo "Checking Accuracy..............0/10"
+fi
+echo "============================================"
 echo Final grade $grade

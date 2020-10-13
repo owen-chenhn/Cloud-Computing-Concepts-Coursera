@@ -120,8 +120,6 @@ int MP1Node::initThisNode(Address *joinaddr) {
  * DESCRIPTION: Join the distributed system
  */
 int MP1Node::introduceSelfToGroup(Address *joinaddr) {
-    int id;
-    short port;
     MessageHdr *msg;
 #ifdef DEBUGLOG
     static char s[1024];
@@ -135,20 +133,13 @@ int MP1Node::introduceSelfToGroup(Address *joinaddr) {
         memberNode->inGroup = true;
     }
     else {
-        size_t msgsize = sizeof(MessageHdr) + sizeof(MessageEntry);
-        msg = (MessageHdr *) malloc(msgsize * sizeof(char));
-
-        // create JOINREQ message: format of data is {msgType myaddr heartbeat}
-        msg->msgType = JOINREQ;
-        msg->entrySize = 1;
-        memcpy((char *)(msg+1), &memberNode->addr, sizeof(memberNode->addr));
-        memcpy((char *)(msg+1) + sizeof(memberNode->addr), &memberNode->heartbeat, sizeof(long));
+        size_t msgsize;
+        msg = constructMessage(JOINREQ, &msgsize);
 
 #ifdef DEBUGLOG
         sprintf(s, "Trying to join...");
         log->LOG(&memberNode->addr, s);
 #endif
-
         // send JOINREQ message to introducer member
         emulNet->ENsend(&memberNode->addr, joinaddr, (char *)msg, msgsize);
 
@@ -229,25 +220,22 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
      */
     MessageHdr *msg = (MessageHdr *) data;
     MessageEntry *entry = (MessageEntry *)(msg + 1);
-    size_t entrySize = (size - sizeof(MessageHdr)) / sizeof(MessageEntry);
 
     if (msg->msgType == JOINREQ) {
         // This node must be the coordinator.
         int id = getAddressId(entry->addr);
         short port = getAddressPort(entry->addr);
 
-        for (MemberListEntry mem : memberNode->memberList) {
+        for (MemberListEntry &mem : memberNode->memberList) {
             if (id == mem.getid() && port == mem.getport()) 
                 // this member is already in the group
                 return false;
         }
         
         // Join this node into group by replying JOINREP.
-        size_t memsize = memberNode->memberList.size();
-        size_t msgsize = sizeof(MessageHdr) + memsize * sizeof(MessageEntry);
-        MessageHdr *reply = (MessageHdr *) malloc(msgsize);
-        constructMemberListMsg(reply);
-        reply->msgType = JOINREP;
+        size_t msgsize;
+        MessageHdr *reply = constructMessage(JOINREP, &msgsize);
+
         Address replyAddr(entry->addr);
         emulNet->ENsend(&memberNode->addr, &replyAddr, (char *)reply, msgsize);
 
@@ -308,6 +296,23 @@ size_t MP1Node::constructMemberListMsg(MessageHdr *msg) {
 
     msg->entrySize = entryCount;
     return entryCount;
+}
+
+/**
+ * FUNCTION NAME: constructMessage
+ *
+ * DESCRIPTION: Construct message to be sent via EmulNet. 
+ * 
+ * NOTE: The returned pointer must be freed later manually! 
+ */
+MessageHdr * MP1Node::constructMessage(MsgTypes msgType, size_t *msgSize) {
+    size_t size = sizeof(MessageHdr) + memberNode->memberList.size() * sizeof(MessageEntry);
+    MessageHdr *message = (MessageHdr *) malloc(size);
+    constructMemberListMsg(message);
+    message->msgType = msgType;
+    *msgSize = size;
+
+    return message;
 }
 
 /**
@@ -387,24 +392,20 @@ void MP1Node::nodeLoopOps() {
     }
 
     // Gossip the membership list. 
-    size_t memsize = memberNode->memberList.size();
-    size_t msgsize = sizeof(MessageHdr) + memsize * sizeof(MessageEntry);
-    MessageHdr *memListMsg = (MessageHdr *) malloc(msgsize);
-    constructMemberListMsg(memListMsg);
-    memListMsg->msgType = HEARTBEAT;
-    
+    size_t msgsize;
+    MessageHdr *pingMsg = constructMessage(PING, &msgsize);
     // Randomly select a subset of members and send the message.
-    random_shuffle(memberNode->memberList.begin() + 1, memberNode->memberList.end());
-    it = memberNode->memberList.begin() + 1;
-    while (it != memberNode->memberList.end() && 
-           it != memberNode->memberList.begin() + 1 + GOSSIPSIZE) {
-    //while (it != memberNode->memberList.end()) {
+    vector<MemberListEntry> randomList(memberNode->memberList.begin() + 1, memberNode->memberList.end());
+    random_shuffle(randomList.begin(), randomList.end());
+    it = randomList.begin();
+    while (it != randomList.end() && 
+           it != randomList.begin() + GOSSIPSIZE) {
         Address sendAddr;
         fillAddress(sendAddr, it->getid(), it->getport());
-        emulNet->ENsend(&memberNode->addr, &sendAddr, (char *)memListMsg, msgsize);
+        emulNet->ENsend(&memberNode->addr, &sendAddr, (char *)pingMsg, msgsize);
         it++;
     }
-    free(memListMsg);
+    free(pingMsg);
 
 #ifdef DEBUGLOG
         string s = "Current member list: ";
@@ -452,7 +453,6 @@ void MP1Node::initMemberListTable() {
     int id = getAddressId(memberNode->addr);
     short port = getAddressPort(memberNode->addr);
     memberNode->memberList.emplace_back(id, port, memberNode->heartbeat, par->getcurrtime());
-    memberNode->myPos = memberNode->memberList.begin();
 }
 
 /**

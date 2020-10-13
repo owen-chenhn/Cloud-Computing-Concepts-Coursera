@@ -20,7 +20,7 @@
  */
 #define TREMOVE 20
 #define TFAIL 10
-#define GOSSIPSIZE 5
+#define GOSSIPSIZE 4
 
 /*
  * Note: You can change/add any functions in MP1Node.{h,cpp}
@@ -32,7 +32,7 @@
 enum MsgTypes{
     JOINREQ,
     JOINREP,
-	HEARTBEAT,
+	PING,
     DUMMYLASTMSGTYPE
 };
 
@@ -86,6 +86,7 @@ public:
 
 	void fillAddress(Address &address, int id, short port);
 	size_t constructMemberListMsg(MessageHdr *msg);
+	MessageHdr *constructMessage(MsgTypes msgType, size_t *msgSize);
 	void msgEntryLoop(MessageEntry *data, size_t entrySize);
 
 	void nodeLoopOps();
